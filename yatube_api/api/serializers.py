@@ -41,8 +41,6 @@ class FollowSerializer(serializers.ModelSerializer):
         queryset=User.objects.all()
 
     )
-    print(following)
-    print('123')
 
     class Meta:
         fields = ('user', 'following')

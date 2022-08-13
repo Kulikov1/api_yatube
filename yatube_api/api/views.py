@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions, filters
+from rest_framework import viewsets, permissions, filters, mixins
 from rest_framework.pagination import LimitOffsetPagination
 from django.shortcuts import get_object_or_404
 
@@ -8,7 +8,7 @@ from .serializers import (
     PostSerializer, GroupSerializer,
     CommentSerializer, FollowSerializer
 )
-from .permissions import AuthorOrReadOnly, ReadOnly
+from .permissions import AuthorOrReadOnly
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -17,10 +17,10 @@ class PostViewSet(viewsets.ModelViewSet):
     permission_classes = (AuthorOrReadOnly,)
     pagination_class = LimitOffsetPagination
 
-    def get_permissions(self):
-        if self.action == 'retrieve':
-            return (ReadOnly(),)
-        return super().get_permissions()
+    # def get_permissions(self):
+    #     if self.action == 'retrieve':
+    #         return (ReadOnly(),)
+    #     return super().get_permissions()
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -35,10 +35,10 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = (AuthorOrReadOnly,)
 
-    def get_permissions(self):
-        if self.action == 'retrieve':
-            return (ReadOnly(),)
-        return super().get_permissions()
+    # def get_permissions(self):
+    #     if self.action == 'retrieve':
+    #         return (ReadOnly(),)
+    #     return super().get_permissions()
 
     def get_queryset(self):
         post_id = self.kwargs.get('post_id')
@@ -51,7 +51,12 @@ class CommentViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user, post=post)
 
 
-class FollowViewSet(viewsets.ModelViewSet):
+class CreateListViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
+                        viewsets.GenericViewSet):
+    pass
+
+
+class FollowViewSet(CreateListViewSet):
     serializer_class = FollowSerializer
     permission_classes = (permissions.IsAuthenticated,)
     filter_backends = (filters.SearchFilter, )
@@ -61,10 +66,9 @@ class FollowViewSet(viewsets.ModelViewSet):
         return Follow.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        print('!!!perform_create')
         following_user = get_object_or_404(
             User,
-            username=self.request.data.get("following")
+            username=self.request.data.get('following')
         )
         serializer.save(
             user=self.request.user,
